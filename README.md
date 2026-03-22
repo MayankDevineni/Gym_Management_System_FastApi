@@ -12,13 +12,14 @@ Core Features
 * CRUD operations for gym plans
 * Membership enrollment system
 * Class booking system with eligibility checks
-* Automatic membership fee calculation
+* Automatic membership fee calculation with discounts and charges
 
 Business Logic
 
 * Duration-based discounts (10% for 6 months, 20% for 12 months)
 * Referral discount (5%)
 * EMI processing fee
+* Discount breakdown included in response
 * Plan deletion restricted if active members exist
 * Class booking allowed only for eligible members
 * Membership freeze and reactivate functionality
@@ -43,12 +44,12 @@ fastapi-gym-management-system/
 
 Setup and Run Instructions
 
-1. Clone the Repository
-   git clone https://github.com/MayankDevineni/Gym_Management_System_FastApi
-   cd fastapi-gym-management-system
+Clone the Repository
+git clone https://github.com/MayankDevineni/Gym_Management_System_FastApi
+cd Gym_Management_System_FastApi
 
-2. Create Virtual Environment
-   python -m venv venv
+Create Virtual Environment
+python -m venv venv
 
 Activate environment
 
@@ -58,11 +59,11 @@ venv\Scripts\activate
 Mac/Linux
 source venv/bin/activate
 
-3. Install Dependencies
-   pip install -r requirements.txt
+Install Dependencies
+pip install -r requirements.txt
 
-4. Run the Server
-   uvicorn main:app --reload
+Run the Server
+uvicorn main:app --reload
 
 API Base URL
 http://127.0.0.1:8000
@@ -86,6 +87,9 @@ Memberships
 * Get all memberships
 * Freeze membership
 * Reactivate membership
+* Search memberships
+* Sort memberships
+* Paginate memberships
 
 Classes
 
