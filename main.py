@@ -163,6 +163,7 @@ def create_membership(data: EnrollRequest):
         "membership_id": membership_counter,
         "member_name": data.member_name,
         "plan_name": plan["name"],
+        "includes_classes": plan["includes_classes"],
         "duration": plan["duration_months"],
         "monthly_cost": round(fee / plan["duration_months"], 2),
         "total_fee": fee,
@@ -199,21 +200,119 @@ def filter_plans(
     }
 
 @app.post('/plans' , status_code = 201)
-def create_pan(data:NewPlan):
+def create_plan(data: NewPlan):
     for plan in plans:
         if plan["name"].lower() == data.name.lower():
             return {"message": "plan already exists"}
-        new_plan = {
-            "id": len(plans) + 1,
-            "name": data.name,
-            "duration_months": data.duration_months,
-            "price": data.price,
-            "includes_classes": data.includes_classes,
-            "includes_trainer": data.includes_trainer
-        }
-        plans.append(new_plan)
-        return {
-            "message": f"Plan {data.name} created successfully",
-            "plan": new_plan
-         }
+
+    new_plan = {
+        "id": len(plans) + 1,
+        "name": data.name,
+        "duration_months": data.duration_months,
+        "price": data.price,
+        "includes_classes": data.includes_classes,
+        "includes_trainer": data.includes_trainer
+    }
+    plans.append(new_plan)
+    return {
+        "message": f"Plan {data.name} created successfully",
+        "plan": new_plan
+    }
         
+@app.put("/plans/{plan_id}")
+def update_plan(
+    plan_id: int,
+    price: int = Query(None),
+    includes_classes: bool = Query(None),
+    includes_trainer: bool = Query(None)
+):
+    for plan in plans:
+        if plan["id"] == plan_id:
+
+            if price is not None:
+                plan["price"] = price
+
+            if includes_classes is not None:
+                plan["includes_classes"] = includes_classes
+
+            if includes_trainer is not None:
+                plan["includes_trainer"] = includes_trainer
+
+            return {"message": "Plan updated", "plan": plan}
+
+    return {"message": "Plan not found"}
+
+@app.delete("/plans/{plan_id}")
+def delete_plan(plan_id: int):
+    for i, plan in enumerate(plans):
+        if plan["id"] == plan_id:
+            for m in memberships:
+                if m["plan_name"] == plan["name"] and m["status"] == "active":
+                    return {"message": "Cannot delete plan with active members"}
+
+            # safe to delete
+            del plans[i]
+            return {"message": f"Plan with id {plan_id} deleted successfully"}
+
+    return {"message": f"Plan with id {plan_id} not found"}
+
+class_bookings = []
+class_counter = 1
+
+
+@app.post("/classes/book")
+def book_class(member_name: str, class_name: str, class_date: str):
+    global class_counter
+
+    valid = False
+    for m in memberships:
+        if m["member_name"] == member_name and m["status"] == "active" and m["includes_classes"]:
+            valid = True
+            break
+
+    if not valid:
+        return {"message": "Member not eligible to book classes"}
+
+    booking = {
+        "booking_id": class_counter,
+        "member_name": member_name,
+        "class_name": class_name,
+        "class_date": class_date
+    }
+    class_bookings.append(booking)
+    class_counter += 1
+    return {"message": "Class booked successfully", "booking": booking}
+
+@app.get("/classes/bookings")
+def get_class_bookings():
+    return {
+        "class_bookings": class_bookings,
+        "total": len(class_bookings)
+    }
+    
+@app.delete("/classes/cancel/{booking_id}")
+def cancel_booking(booking_id: int):
+    for i, booking in enumerate(class_bookings):
+        if booking["booking_id"] == booking_id:
+            del class_bookings[i]
+            return {"message": "Booking cancelled successfully"}
+
+    return {"message": "Booking not found"}
+
+@app.put("/memberships/{membership_id}/freeze")
+def freeze_membership(membership_id: int):
+    for m in memberships:
+        if m["membership_id"] == membership_id:
+            m["status"] = "frozen"
+            return {"message": "Membership frozen", "membership": m}
+
+    return {"message": "Membership not found"}
+
+@app.put("/memberships/{membership_id}/reactivate")
+def reactivate_membership(membership_id: int):
+    for m in memberships:
+        if m["membership_id"] == membership_id:
+            m["status"] = "active"
+            return {"message": "Membership reactivated", "membership": m}
+
+    return {"message": "Membership not found"}
